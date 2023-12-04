@@ -1,17 +1,16 @@
-import os
-import json
 from dotenv import load_dotenv
 from openai import OpenAI, BadRequestError
-from run_code import exec_python_code
+
+from utils import *
+
 load_dotenv()
-
+init_directories()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 
 system_prompt = """
 You are a UI Automation Engineer proficient in Python's Playwright library.
 The user will provide you with a web browser-based workflow in natural language.
-You need to provide the user with a complete end to end python script using playwright library that can automate the workflow described by the user.
+You need to provide the user with a complete end to end script that can automate the workflow described by the user.
 
 Since you will not be aware of the elements and css selectors on the website, you cannot write the script in one go.
 To create the script you need to decompose the workflow in multiple steps.
@@ -31,19 +30,22 @@ Approach the task step by step and always follow the sequence of thought, action
 Upon completing the entire workflow, respond only with 'TERMINATED' to let user know the workflow is automated.
 """
 
-messages = [{"role": "system", "content": system_prompt}]
+conversation_id = generate_conversation_id(input("Enter existing Conversation Id or press enter to start a new one."))
+messages: dict = {conversation_id: get_conversation(conversation_id=conversation_id)
+                                   or [{"role": "system", "content": system_prompt}]}
+usages: dict = {conversation_id: get_usages(conversation_id=conversation_id) or []}
 
 user_prompt = input("Enter the workflow\n")
-messages.append({
-        "role": "user",
-        "content": user_prompt,
-    })
+append_conversation(messages=messages, conversation_id=conversation_id, message={
+    "role": "user",
+    "content": user_prompt,
+})
 
 while True:
     print("Calling GPT API")
     try:
         response = client.chat.completions.create(
-            messages=messages,
+            messages=messages[conversation_id],
             model="gpt-4-1106-preview",
             tools=[
                 {
@@ -66,34 +68,14 @@ while True:
             ]
         )
     except BadRequestError as e:
-        print(messages) # Sometimes we get a bad error message when the previous message by assistant contains both message and tool_call.
-    finally:
-        response = client.chat.completions.create(
-            messages=messages,
-            model="gpt-4-1106-preview",
-            tools=[
-                {
-                    "type": "function",
-                    "function": {
-                        "description": "execute Python code and get the output of the executed code.",
-                        "name": "exec_python_code",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "code_block": {
-                                    "type": "string",
-                                    "description": "Python code block to execute",
-                                },
-                            },
-                            "required": ["code_block"],
-                        },
-                    }
-                }
-            ]
-        )
+        print(
+            messages)  # We get error when the previous message by assistant contains both message and tool_call.
+        raise e
 
     response_message = response.choices[0].message
-    messages.append(response_message)
+    append_usage(usages=usages, conversation_id=conversation_id, usage=response.usage.model_dump())
+    append_conversation(messages=messages, conversation_id=conversation_id,
+                        message=response_message.model_dump(exclude_none=True))
     gpt_response = response_message.content
     if response_message.tool_calls is not None:
 
@@ -107,25 +89,22 @@ while True:
             if exec_error is not None:
                 exec_output += exec_error
             print(f"Output: {exec_output}")
-            messages.append(
-                {
-                    "tool_call_id": tool_call.id,
-                    "role": "tool",
-                    "name": function_name,
-                    "content": exec_output,
-                }
-            )
+            append_conversation(messages=messages, conversation_id=conversation_id,
+                                message={
+                                    "tool_call_id": tool_call.id,
+                                    "role": "tool",
+                                    "name": function_name,
+                                    "content": exec_output,
+                                })
 
     if gpt_response is not None:
         print(gpt_response)
         if gpt_response == "TERMINATED":
             break
         user_prompt = input("Suggest\n")
-        messages.append({
+        append_conversation(messages=messages, conversation_id=conversation_id, message={
             "role": "user",
             "content": user_prompt,
         })
 
-
-#Todo Check the token usage.
-
+# Todo: Figure out the best way to distribute this.

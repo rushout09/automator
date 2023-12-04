@@ -1,47 +1,35 @@
 from playwright.sync_api import sync_playwright
 
-def run(playwright):
-    browser = playwright.chromium.launch(headless=False)
-    context = browser.new_context()
-    # Open new page
-    page = context.new_page()
-
-    # Go to hevodata.com
-    page.goto("https://hevodata.com")
-    print("Navigated to hevodata.com")
-
-    # Find the email input box and enter a dummy email
-    print("Finding the email input box")
+with sync_playwright() as p:
     try:
-        email_selector = "xpath=//input[@type='email']"
-        email_elem = page.wait_for_selector(email_selector)
-        email_elem.fill("dummyemail@example.com")
-        print("Email entered")
+        browser = p.chromium.launch(headless=False)
+        page = browser.new_page()
+        page.goto('https://www.google.com')
+        print('Navigated to Google.')
+
+        # Wait for the selector that identifies the search input to be visible
+        search_input = page.wait_for_selector("input[name='q']", timeout=10000)
+        print('Search input field found.')
+
+        # Fill the search input with 'rushabh'
+        search_input.fill('rushabh')
+        print('Filled search input with rushabh.')
+
+        # Submit the search query by pressing Enter
+        search_input.press('Enter')
+        print('Submitted the search.')
+
+        # Wait for the navigation to happen post-search submission
+        page.wait_for_navigation()
+        print('Navigation after search submission confirmed.')
+
+        # Check if search results are shown
+        if page.locator("#search").count() > 0:
+            print('Search results are displayed for rushabh.')
+        else:
+            print('Failed to display search results.')
     except Exception as e:
-        print(f"Error locating or filling in the email input box: {e}")
-        return
-
-    # Locate the submit button and click on it
-    try:
-        submit_selector = "xpath=//button[@type='submit']"
-        submit_elem = page.wait_for_selector(submit_selector)
-        submit_elem.click()
-        print("Submit button clicked")
-    except Exception as e:
-        print(f"Error locating or clicking the submit button: {e}")
-        return
-
-    # Attempt to navigate after clicking the submit button
-    try:
-        page.wait_for_load_state("networkidle")
-        print("Navigation after email submission was successful")
-    except Exception as e:
-        print(f"Error during navigation after email submission: {e}")
-        return
-
-    # Close browser
-    print("Workflow complete. Closing the browser.")
-    browser.close()
-
-with sync_playwright() as playwright:
-    run(playwright)
+        print(f'An error occurred: {e}')
+    finally:
+        browser.close()
+        print('Browser closed.')
