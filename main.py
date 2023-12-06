@@ -15,8 +15,8 @@ The user will provide you with a web based workflow that needs to be automated s
 You need to provide the user with a complete end to end script that can automate the workflow described by the user.
 To create the script you need to decompose the workflow and think step by step.
 
-You can use 'get_cleaned_html' tool to get an idea of the structure of the webpage.
-Utilize XPath to find a list of relevant elements and iterate through the list to find the correct element.
+Utilize generic XPath to list all the css selectors containing the text and then choose the appropriate one.
+When search for selectors by text, make sure you take care of case sensitivity.
 You are given a tool 'exec_python_code'. Use this tool to execute Python code and get the output of the executed code.
 Ask user for a go ahead before using any tool.
 Use 'try and except' blocks to catch exceptions in your code and print them.
@@ -36,6 +36,7 @@ Respond only with 'TERMINATED' to let user know that script for the workflow is 
 """
 
 conversation_id = generate_conversation_id(input("Enter existing Conversation Id or press enter to start a new one."))
+print(conversation_id)
 messages: dict = {conversation_id: get_conversation(conversation_id=conversation_id) or [{"role": "system",
                                                                                           "content": system_prompt}]}
 usages: dict = {conversation_id: get_usages(conversation_id=conversation_id) or []}
@@ -70,23 +71,23 @@ while True:
                         },
                     }
                 },
-                {
-                    "type": "function",
-                    "function": {
-                        "description": "Removes unnecessary tags from a webpage and returns cleaned html as a string",
-                        "name": "get_cleaned_html",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "url": {
-                                    "type": "string",
-                                    "description": "URL of the webpage to get cleaned html",
-                                },
-                            },
-                            "required": ["url"],
-                        },
-                    }
-                }
+                # {
+                #     "type": "function",
+                #     "function": {
+                #         "description": "Removes unnecessary tags from a webpage and returns cleaned html as a string",
+                #         "name": "get_cleaned_html",
+                #         "parameters": {
+                #             "type": "object",
+                #             "properties": {
+                #                 "url": {
+                #                     "type": "string",
+                #                     "description": "URL of the webpage to get cleaned html",
+                #                 },
+                #             },
+                #             "required": ["url"],
+                #         },
+                #     }
+                # }
             ]
         )
     except BadRequestError as e:
@@ -132,6 +133,7 @@ while True:
     if gpt_response is not None:
         print(gpt_response)
         if gpt_response == "TERMINATED":
+            print(conversation_id)
             break
         user_prompt = input("Suggest\n")
         append_conversation(messages=messages, conversation_id=conversation_id, message={
@@ -139,10 +141,11 @@ while True:
             "content": user_prompt,
         })
         if user_prompt in ["finish", "terminate"]:
+            print(conversation_id)
             break
 
 # Todo: Figure out the best way to distribute this.
 # Todo: Have another AI agent to review code?
 # Todo: Improve prompt.
-# Todo: Give the Agent eyes with HTML?
-# Todo: try opencv and vision.
+# Todo: Give the Agent eyes with HTML? This did not work very well.
+# Todo: try llava/gpt4v and vision.

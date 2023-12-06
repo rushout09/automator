@@ -62,22 +62,7 @@ def exec_python_code(user_code: str, conversation_id: str):
     return stdout_result
 
 
-def get_cleaned_html(url: str):
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        context = browser.new_context()
-        page = context.new_page()
-
-        # Navigate to the specified URL
-        page.goto(url)
-
-        # Wait for the page to load (you may adjust the time based on the page's load speed)
-        page.wait_for_load_state("load")
-        page.wait_for_timeout(2000)
-
-        # Extract HTML content
-        html_content = page.content()
-
+def get_cleaned_html(html_content: str):
     # Parse HTML content with BeautifulSoup
     soup = BeautifulSoup(html_content, 'html.parser')
 
@@ -147,6 +132,3 @@ def get_conversation(conversation_id: str):
         return messages
     else:
         return None
-
-
-print(get_cleaned_html("https://asia.hevodata.com"))
