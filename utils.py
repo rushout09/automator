@@ -2,7 +2,7 @@ import sys
 import json
 import os
 import secrets
-import requests
+from playwright.sync_api import Playwright, sync_playwright
 from io import StringIO
 from typing import Optional
 from bs4 import BeautifulSoup
@@ -31,10 +31,10 @@ def init_directories():
             print(f"Directory '{path}' already exists.")
 
 
-def exec_python_code(user_code: str):
+def exec_python_code(user_code: str, conversation_id: str):
     # Save the user-provided code to a file
 
-    with open(f'{directories.get("generated_scripts")}/user_code.py', 'w') as file:
+    with open(f'{directories.get("generated_scripts")}/{conversation_id}.py', 'w') as file:
         file.write(user_code)
 
     # Redirect stdout and stderr to capture the output
@@ -45,7 +45,7 @@ def exec_python_code(user_code: str):
 
     try:
         # Execute the user-provided code
-        with open('generated_scripts/user_code.py', 'r') as file:
+        with open(f'{directories.get("generated_scripts")}/{conversation_id}.py', 'r') as file:
             exec(file.read())
     except Exception as e:
         # Capture any exception and print the error
@@ -63,33 +63,47 @@ def exec_python_code(user_code: str):
 
 
 def get_cleaned_html(url: str):
-    headers = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/55.0.2883.87 Safari/537.36'}
-    response = requests.get(url=url, headers=headers)
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+        page = context.new_page()
 
-    if response.status_code == 200:
-        html_content = response.text
+        # Navigate to the specified URL
+        page.goto(url)
 
-        # Parse HTML content with BeautifulSoup
-        soup = BeautifulSoup(html_content, 'html.parser')
+        # Wait for the page to load (you may adjust the time based on the page's load speed)
+        page.wait_for_load_state("load")
 
-        # Find all relevant tags
-        relevant_tags = soup.find_all(['a', 'span', 'input', 'button'])
+        # Extract HTML content
+        html_content = page.content()
 
-        # Extract and print the content of the relevant tags
-        relevant_tags_content = ""
-        for tag in relevant_tags:
-            relevant_tags_content += str(tag)
+    # Parse HTML content with BeautifulSoup
+    soup = BeautifulSoup(html_content, 'html.parser')
 
-        final_line = ""
-        for line in relevant_tags_content.splitlines():
-            if any(["<path" in line, "<svg" in line, "<img" in line]):
-                # print(line)
-                continue
-            final_line += line
-        return final_line
-    return f"URL returned {response.status_code} response."
+    for element in soup.find_all(attrs={'class': True}):
+        del element['class']
+
+    for element in soup.find_all(attrs={"data-sizes": True, "width": True, "height": True, "data-srcset": True}):
+        del element["data-srcset"]
+        del element["data-sizes"]
+        del element["height"]
+        del element["width"]
+    # Find all relevant tags
+    relevant_tags = soup.find_all(['a', 'span', 'input', 'button', 'li', 'ul', 'nav'])
+
+    # Extract and print the content of the relevant tags
+    relevant_tags_content = ""
+    for tag in relevant_tags:
+        # print(tag)
+        relevant_tags_content += str(tag)
+
+    final_line = ""
+    for line in relevant_tags_content.splitlines():
+        if any(["<path" in line, "<svg" in line, "<div class" in line, "</div>" in line, "<div>" in line, "<br>" in line]):
+            continue
+        # print(line)
+        final_line += line
+    return final_line
 
 
 def append_conversation(messages: dict, conversation_id: str, message: dict):
@@ -134,4 +148,4 @@ def get_conversation(conversation_id: str):
         return None
 
 
-print(get_cleaned_html("https://www.joinef.com"))
+# print(get_cleaned_html("https://www.joinef.com"))
