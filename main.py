@@ -18,16 +18,16 @@ To create the script you need to decompose the workflow and think step by step.
 You can use 'get_cleaned_html' tool to get an idea of the structure of the webpage.
 Utilize XPath to find a list of relevant elements and iterate through the list to find the correct element.
 You are given a tool 'exec_python_code'. Use this tool to execute Python code and get the output of the executed code.
-Ask user for help if stuck.
+Ask user for a go ahead before using any tool.
 Use 'try and except' blocks to catch exceptions in your code and print them.
-Include print statements to validate if something worked instead of assuming things.
-Add 10 seconds wait times for the pages to load.
+Add print statements after every action to validate if that line of code worked instead of assuming things.
+Add 5 seconds wait times for the pages to load.
 
 Assume {automation_library} is already installed.
 Ensure the browser is in headless=False.
 Ensure that browser window is maximised. 
 
-Think about the task step by step and always follow the sequence of thought, action, and observation flow.
+Think about the workflow step by step and always follow the sequence of thought, action, and observation flow.
  1. Thought: Think of an action plan and share it with user.
  2. Action: If user says yes then go ahead and call the tool
  3. Observation: Observe the output of the Action step and plan next step.
@@ -143,5 +143,6 @@ while True:
 
 # Todo: Figure out the best way to distribute this.
 # Todo: Have another AI agent to review code?
+# Todo: Improve prompt.
 # Todo: Give the Agent eyes with HTML?
 # Todo: try opencv and vision.

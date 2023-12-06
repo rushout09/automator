@@ -73,6 +73,7 @@ def get_cleaned_html(url: str):
 
         # Wait for the page to load (you may adjust the time based on the page's load speed)
         page.wait_for_load_state("load")
+        page.wait_for_timeout(2000)
 
         # Extract HTML content
         html_content = page.content()
@@ -97,13 +98,13 @@ def get_cleaned_html(url: str):
         # print(tag)
         relevant_tags_content += str(tag)
 
-    final_line = ""
+    cleaned_html = ""
     for line in relevant_tags_content.splitlines():
         if any(["<path" in line, "<svg" in line, "<div class" in line, "</div>" in line, "<div>" in line, "<br>" in line]):
             continue
         # print(line)
-        final_line += line
-    return final_line
+        cleaned_html += line
+    return cleaned_html
 
 
 def append_conversation(messages: dict, conversation_id: str, message: dict):
@@ -148,4 +149,4 @@ def get_conversation(conversation_id: str):
         return None
 
 
-# print(get_cleaned_html("https://www.joinef.com"))
+print(get_cleaned_html("https://asia.hevodata.com"))
