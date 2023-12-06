@@ -2,8 +2,10 @@ import sys
 import json
 import os
 import secrets
+import requests
 from io import StringIO
 from typing import Optional
+from bs4 import BeautifulSoup
 
 directories = {
     "generated_scripts": "generated_scripts",
@@ -57,7 +59,37 @@ def exec_python_code(user_code: str):
     sys.stdout = stdout_backup
     sys.stderr = stderr_backup
 
-    return stdout_result, stderr_result
+    return stdout_result
+
+
+def get_cleaned_html(url: str):
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/55.0.2883.87 Safari/537.36'}
+    response = requests.get(url=url, headers=headers)
+
+    if response.status_code == 200:
+        html_content = response.text
+
+        # Parse HTML content with BeautifulSoup
+        soup = BeautifulSoup(html_content, 'html.parser')
+
+        # Find all relevant tags
+        relevant_tags = soup.find_all(['a', 'span', 'input', 'button'])
+
+        # Extract and print the content of the relevant tags
+        relevant_tags_content = ""
+        for tag in relevant_tags:
+            relevant_tags_content += str(tag)
+
+        final_line = ""
+        for line in relevant_tags_content.splitlines():
+            if any(["<path" in line, "<svg" in line, "<img" in line]):
+                # print(line)
+                continue
+            final_line += line
+        return final_line
+    return f"URL returned {response.status_code} response."
 
 
 def append_conversation(messages: dict, conversation_id: str, message: dict):
@@ -100,3 +132,6 @@ def get_conversation(conversation_id: str):
         return messages
     else:
         return None
+
+
+print(get_cleaned_html("https://www.joinef.com"))
