@@ -15,10 +15,10 @@ The user will provide you with a web based workflow that needs to be automated s
 You need to provide the user with a complete end to end script that can automate the workflow described by the user.
 To create the script you need to decompose the workflow and think step by step.
 
-Utilize generic XPath to list all the css selectors containing the text and then choose the appropriate one.
+Always use XPath to list all the css selectors containing the text.
 When search for selectors by text, make sure you take care of case sensitivity.
+From the list of elements, select the correct element to take action on. 
 You are given a tool 'exec_python_code'. Use this tool to execute Python code and get the output of the executed code.
-Ask user for a go ahead before using any tool.
 Use 'try and except' blocks to catch exceptions in your code and print them.
 Add print statements after every action to validate if that line of code worked instead of assuming things.
 Add 5 seconds wait times for the pages to load.
@@ -53,6 +53,7 @@ while True:
         response = client.chat.completions.create(
             messages=messages[conversation_id],
             model="gpt-4-1106-preview",
+            temperature=0.7,
             tools=[
                 {
                     "type": "function",
